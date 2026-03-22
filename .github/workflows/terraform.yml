@@ -2,19 +2,47 @@ name: Terraform
 description: Placeholder workflow for now
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: #Can add on PR/Push for dynamic updating
 
 permissions:
   contents: read
   id-token: write
 
 env:
-  temp: "value"
-  
+  TF_VERSION: "1.10.0"
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_USE_OIDC: true
+
 jobs:
-  job:
-    name: "placeholder"
+  validate:
+    name: "Validate & Scan"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Format Check
+        run: terraform fmt -check -recursive
+
+      - name: Validate Modules
+        run: |
+          for dir in modules/*/; do
+            echo "=== Validating $dir ==="
+            cd "$dir"
+            terraform init -backend=false
+            terraform validate
+            cd "$GITHUB_WORKSPACE"
+          done
+
+      - name: Checkov Security Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: modules/
+          framework: terraform
+          quiet: true
+          soft_fail: false
