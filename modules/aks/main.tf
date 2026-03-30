@@ -8,7 +8,7 @@ resource "azurerm_kubernetes_cluster" "main" {
 
   # Auto-upgrade to latest stable patch
   automatic_upgrade_channel = "stable"
-  node_os_channel_upgrade   = "NodeImage"
+  node_os_upgrade_channel   = "NodeImage"
 
   # Managed identity — no credential rotation needed
   identity {
